@@ -11,7 +11,7 @@ const serviceAdapter = new ExperimentalEmptyAdapter();
 const runtime = new CopilotRuntime({
   agents: {
       'agent': new LangGraphAgent({
-          deploymentUrl: 'http://localhost:2024',
+          deploymentUrl: 'http://127.0.0.1:2024',
           graphId: 'agent',
           langsmithApiKey: ''
       }),
