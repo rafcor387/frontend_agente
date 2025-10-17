@@ -35,11 +35,28 @@ export default function ChatPage() {
     });
   }, []);
 
+  // 🔁 useEffect: refresca lista cada vez que cambia threadId
+  useEffect(() => {
+    async function fetchThreads() {
+      try {
+        const r = await fetch("/api/threads");
+        const data = (await r.json()) as ThreadSummary[];
+        setThreads(data);
+      } catch (err) {
+        console.error("Error al obtener threads:", err);
+      }
+    }
+    fetchThreads();
+  }, []); // <- cada vez que cambie el hilo actual, se actualiza el menú
+
   function newChat() {
-    const optimistic = crypto.randomUUID();     // creación optimista de thread
-    setThreadId(optimistic);
-    // La doc sugiere este patrón; el primer submit creará el hilo con ese ID.
-  }
+    if (stream.isLoading) void stream.stop();
+
+    // 1) quitar cualquier threadId actual
+    setThreadId(undefined);
+
+    // 2) (opcional) limpiar UI / scroll / etc.
+    }
 
   function openThread(id: string) {
     // Cargar/retomar historial de ese thread (el hook lo maneja al montar/cambiar)
@@ -50,8 +67,8 @@ export default function ChatPage() {
     const text = input.trim();
     if (!text) return;
     stream.submit(
-      { messages: [{ type: "human", content: text }] },
-      { threadId } // si es un UUID nuevo, el server crea el hilo (optimistic creation)
+        { messages: [{ type: "human", content: text }] }
+        // <- SIN segundo argumento (no mandes threadId)
     );
     setInput("");
   }
@@ -91,7 +108,7 @@ export default function ChatPage() {
       </aside>
 
       {/* Panel de chat */}
-      <section className="flex flex-col">
+      <section className="flex flex-col overflow-auto">
         {/* Cabecera */}
         <div className="flex items-center justify-between px-4 py-2 bg-neutral-900 border-b">
           <div className="text-xs text-neutral-400">
