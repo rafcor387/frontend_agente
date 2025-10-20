@@ -1,19 +1,21 @@
-import "./globals.css";
-import { ReactNode } from "react";
-import { CopilotKit } from "@copilotkit/react-core"; 
-import "@copilotkit/react-ui/styles.css";
+// app/layout.tsx
+import type { Metadata } from "next";
+import "./globals.css"; // tu Tailwind base
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export const metadata: Metadata = {
+  title: "Project CopilotKit",
+  description: "Next.js + Django auth con JWT",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
-      <body> 
-        {/* Use the public api key you got from Copilot Cloud  */}
-        <CopilotKit 
-          runtimeUrl="/api/copilotkit"
-          agent="agent" // the name of the agent you want to use
-        > 
-          {children}
-        </CopilotKit>
+    <html lang="es">
+      <body className="min-h-screen bg-neutral-950 text-neutral-100 antialiased">
+        {children}
       </body>
     </html>
   );
