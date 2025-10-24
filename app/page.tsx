@@ -1,7 +1,9 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import Chat from "../components/Chat";
 
-export default async function IndexPage() {
-  const access = (await cookies()).get("access")?.value;
-  redirect(access ? "/home" : "/login");
+export default function Page() {
+  return (
+    <main className="p-6">
+      <Chat />
+    </main>
+  );
 }
