@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useStream } from "@langchain/langgraph-sdk/react";
 import type { Message } from "@langchain/langgraph-sdk";
 
@@ -10,6 +10,7 @@ type ThreadSummary = {
   created_at: string;
   updated_at: string;
   metadata?: Record<string, unknown>;
+  values?: { messages?: Message[] }; // ← Add this if API returns it
 };
 
 export default function ChatPage() {
@@ -17,18 +18,17 @@ export default function ChatPage() {
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
   const [input, setInput] = useState("");
 
-  // Hook oficial: maneja mensajes + streaming
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const stream = useStream<{ messages: Message[] }>({
     apiUrl:
       process.env.NEXT_PUBLIC_LANGGRAPH_API_URL || "http://localhost:2024",
     assistantId: process.env.NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID || "agent",
     messagesKey: "messages",
     threadId,
-    onThreadId: setThreadId, // el hook te avisa si el server asigna/actualiza ID
-    // (la guía muestra cómo retomar/rehidratar el historial con un threadId)
+    onThreadId: setThreadId,
   });
 
-  // Cargar lista de threads para el menú lateral
   useEffect(() => {
     fetch("/api/threads").then(async (r) => {
       const data = (await r.json()) as ThreadSummary[];
@@ -36,7 +36,6 @@ export default function ChatPage() {
     });
   }, []);
 
-  // 🔁 useEffect: refresca lista cada vez que cambia threadId
   useEffect(() => {
     async function fetchThreads() {
       try {
@@ -48,58 +47,81 @@ export default function ChatPage() {
       }
     }
     fetchThreads();
-  }, [threadId]); // <- cada vez que cambie el hilo actual, se actualiza el menú
+  }, [threadId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [stream.messages]); // Triggers when messages array changes
 
   function newChat() {
     if (stream.isLoading) void stream.stop();
-
-    // 1) quitar cualquier threadId actual
     setThreadId(undefined);
   }
 
   function openThread(id: string) {
-    // Cargar/retomar historial de ese thread (el hook lo maneja al montar/cambiar)
     setThreadId(id);
   }
 
   function send() {
     const text = input.trim();
     if (!text) return;
-    stream.submit(
-      { messages: [{ type: "human", content: text }] }
-      // <- SIN segundo argumento (no mandes threadId)
-    );
+    stream.submit({ messages: [{ type: "human", content: text }] });
     setInput("");
   }
 
+  // ✅ Helper function to get thread display name
+  function getThreadTitle(thread: ThreadSummary): string {
+    // 1. Try metadata title first
+    if (thread.metadata?.title) {
+      return String(thread.metadata.title);
+    }
+
+    // 2. Try first message from values
+    if (thread.values?.messages && thread.values.messages.length > 0) {
+      const firstMessage = thread.values.messages[0];
+      const content = String(firstMessage.content ?? "");
+      return content.slice(0, 50) + (content.length > 50 ? "..." : "");
+    }
+
+    // 3. Fallback to formatted date
+    return `Chat ${new Date(thread.created_at).toLocaleDateString("es-ES", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
+  }
+
   return (
-    <div className="grid grid-cols-[280px_1fr] h-[85vh] border rounded-2xl overflow-hidden">
+    <div className="grid grid-cols-[280px_1fr] h-[85vh] border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-lg">
       {/* Sidebar: lista de threads */}
-      <aside className="bg-neutral-900 border-r overflow-auto">
-        <div className="p-3 flex items-center justify-between">
-          <h2 className="text-sm text-neutral-300">Conversaciones</h2>
+      <aside className="bg-gray-50 border-r border-gray-200 overflow-auto">
+        <div className="p-3 flex items-center justify-between border-b border-gray-200">
+          <h2 className="text-sm font-semibold text-gray-700">Conversaciones</h2>
           <button
             onClick={newChat}
-            className="px-2 py-1 text-sm rounded bg-neutral-700 hover:bg-neutral-600 text-white"
+            className="px-2 py-1 text-sm rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
             disabled={stream.isLoading}
           >
             Nuevo
           </button>
         </div>
-        <ul className="px-2 pb-2 space-y-1">
+        <ul className="px-2 pb-2 space-y-1 mt-2">
           {threads.map((t) => (
             <li key={t.thread_id}>
               <button
                 onClick={() => openThread(t.thread_id)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                   threadId === t.thread_id
-                    ? "bg-neutral-800 text-white"
-                    : "hover:bg-neutral-800 text-neutral-200"
+                    ? "bg-indigo-100 text-indigo-900 border border-indigo-200"
+                    : "hover:bg-gray-100 text-gray-700 border border-transparent"
                 }`}
                 title={t.thread_id}
               >
-                <div className="truncate">{t.thread_id}</div>
-                <div className="text-[11px] opacity-70">
+                <div className="truncate font-medium">
+                  {getThreadTitle(t)}
+                </div>
+                <div className="text-[11px] text-gray-500 mt-0.5">
                   {t.status} • {new Date(t.updated_at).toLocaleString()}
                 </div>
               </button>
@@ -109,16 +131,13 @@ export default function ChatPage() {
       </aside>
 
       {/* Panel de chat */}
-      <section className="flex flex-col overflow-auto">
+      <section className="flex flex-col overflow-auto bg-white">
         {/* Cabecera */}
-        <div className="flex items-center justify-between px-4 py-2 bg-neutral-900 border-b">
-          <div className="text-xs text-neutral-400">
-            {threadId ? `Thread: ${threadId}` : "Sin conversación"}
-          </div>
+        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
           {stream.isLoading ? (
             <button
               onClick={() => stream.stop()}
-              className="px-2 py-1 rounded bg-amber-600 text-white text-sm"
+              className="px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-600 text-white text-sm transition-colors"
             >
               Detener
             </button>
@@ -126,8 +145,10 @@ export default function ChatPage() {
         </div>
 
         {/* Historial */}
-        <div className="flex-1 overflow-auto p-4 space-y-3 bg-neutral-950/30">
-          {stream.messages.map((m) => (
+        <div className="flex-1 overflow-auto p-4 space-y-3 bg-gray-50/50">
+          {stream.messages
+          .filter((m) => m.type === "human" || m.type === "ai")
+          .map((m) => (
             <div
               key={m.id}
               className={`flex ${
@@ -135,10 +156,10 @@ export default function ChatPage() {
               }`}
             >
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 shadow ${
+                className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
                   m.type === "human"
                     ? "bg-indigo-600 text-white"
-                    : "bg-neutral-800 text-neutral-50"
+                    : "bg-white text-gray-900 border border-gray-200"
                 }`}
               >
                 <p className="whitespace-pre-wrap leading-relaxed">
@@ -148,10 +169,12 @@ export default function ChatPage() {
             </div>
           ))}
           {stream.isLoading && (
-            <div className="text-xs text-neutral-400">
+            <div className="text-xs text-gray-500 italic">
               El agente está respondiendo…
             </div>
           )}
+          {/*Invisible div at the bottom to scroll to */}
+          {/* <div ref={messagesEndRef} /> */}
         </div>
 
         {/* Input */}
@@ -160,17 +183,17 @@ export default function ChatPage() {
             e.preventDefault();
             send();
           }}
-          className="p-3 bg-neutral-900 border-t flex gap-2"
+          className="p-3 bg-white border-t border-gray-200 flex gap-2"
         >
           <input
-            className="flex-1 bg-neutral-800 rounded-xl px-4 py-3 outline-none"
+            className="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-gray-900 placeholder-gray-500 transition-all"
             placeholder="Escribe tu mensaje…"
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
           <button
             type="submit"
-            className="px-4 py-3 rounded-xl bg-indigo-600 text-white"
+            className="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={stream.isLoading}
           >
             Enviar
