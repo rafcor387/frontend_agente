@@ -19,13 +19,12 @@ export async function POST() {
   });
 
   if (!res.ok) {
-    // refresh inválido -> eliminar cookies
     cookieStore.delete("access");
     cookieStore.delete("refresh");
     return NextResponse.json({ detail: "Refresh failed" }, { status: 401 });
   }
 
-  const data = await res.json(); // { access: "..." }
+  const data = await res.json(); 
   cookieStore.set("access", data.access, {
     httpOnly: true,
     sameSite: "lax",

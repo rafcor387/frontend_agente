@@ -10,7 +10,7 @@ type ThreadSummary = {
   created_at: string;
   updated_at: string;
   metadata?: Record<string, unknown>;
-  values?: { messages?: Message[] }; // ← Add this if API returns it
+  values?: { messages?: Message[] }; 
 };
 
 export default function ChatPage() {
@@ -69,7 +69,6 @@ export default function ChatPage() {
     setInput("");
   }
 
-  // ✅ Helper function to get thread display name
   function getThreadTitle(thread: ThreadSummary): string {
     // 1. Try metadata title first
     if (thread.metadata?.title) {

@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-const DJANGO_API = process.env.DJANGO_API ?? "http://127.0.0.1:8000";
+const DJANGO_API = process.env.DJANGO_API;
 
 export async function GET() {
   const cookieStore = await cookies();

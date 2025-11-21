@@ -1,6 +1,5 @@
-import Chat from "@/components/Chat";
+import Chat from "./Chat";
 
 export default async function HomePage() {
-  // ✅ No need to fetch user data anymore - layout handles it
   return <Chat />;
 }
