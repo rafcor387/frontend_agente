@@ -112,10 +112,6 @@ function RadiosondeReportCard({
   const [report, setReport] = useState(initial);
 
   useEffect(() => {
-    setReport(initial);
-  }, [initial]);
-
-  useEffect(() => {
     if (!['pending', 'processing'].includes(report.status)) return;
     let cancelled = false;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
