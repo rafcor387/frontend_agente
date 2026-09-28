@@ -27,6 +27,24 @@ type MeteorologicalDiagramDescriptor = {
   summary?: string;
 };
 
+type RadiosondeReportDescriptor = {
+  type: "radiosonde_report";
+  report_id: number;
+  status: "pending" | "processing" | "ready" | "failed";
+  start_date: string;
+  end_date: string;
+  time?: string | null;
+  profile_count: number;
+  processed_count: number;
+  failed_count: number;
+  progress_percent: number;
+  status_path: string;
+  view_path?: string | null;
+  download_path?: string | null;
+  filename: string;
+  error?: string | null;
+};
+
 function parseDiagramDescriptor(
   message: Message
 ): MeteorologicalDiagramDescriptor | null {
@@ -56,6 +74,150 @@ function parseDiagramDescriptor(
   } catch {
     return null;
   }
+}
+
+function parseReportDescriptor(
+  message: Message
+): RadiosondeReportDescriptor | null {
+  if (message.type !== "tool") return null;
+
+  try {
+    const raw = message.content;
+    const value = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    const candidate = value as Partial<RadiosondeReportDescriptor>;
+    if (
+      candidate.type !== "radiosonde_report" ||
+      typeof candidate.report_id !== "number" ||
+      !["pending", "processing", "ready", "failed"].includes(
+        candidate.status ?? ""
+      ) ||
+      typeof candidate.status_path !== "string" ||
+      !/^\/api\/radiosonde-reports\/\d+$/.test(candidate.status_path) ||
+      typeof candidate.filename !== "string"
+    ) {
+      return null;
+    }
+    return candidate as RadiosondeReportDescriptor;
+  } catch {
+    return null;
+  }
+}
+
+function RadiosondeReportCard({
+  initial,
+}: {
+  initial: RadiosondeReportDescriptor;
+}) {
+  const [report, setReport] = useState(initial);
+
+  useEffect(() => {
+    setReport(initial);
+  }, [initial]);
+
+  useEffect(() => {
+    if (!['pending', 'processing'].includes(report.status)) return;
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    async function refresh() {
+      try {
+        const response = await fetch(report.status_path, { cache: "no-store" });
+        if (response.ok && !cancelled) {
+          const next = (await response.json()) as RadiosondeReportDescriptor;
+          setReport(next);
+          if (["pending", "processing"].includes(next.status)) {
+            timeoutId = setTimeout(refresh, 3000);
+          }
+          return;
+        }
+      } catch (error) {
+        console.error("Error al actualizar el informe:", error);
+      }
+      if (!cancelled) timeoutId = setTimeout(refresh, 5000);
+    }
+
+    timeoutId = setTimeout(refresh, 1500);
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [report.status, report.status_path]);
+
+  const ready = report.status === "ready";
+  const failed = report.status === "failed";
+  const statusLabel = ready
+    ? "Informe listo"
+    : failed
+      ? "No se pudo generar"
+      : "Generando informe";
+
+  return (
+    <div className="flex justify-start">
+      <article className="w-full max-w-3xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-200 px-4 py-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h3 className="font-semibold text-gray-900">Informe de radiosondeos</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                {report.start_date} a {report.end_date}
+                {report.time ? ` · ${report.time}` : " · todas las horas"}
+              </p>
+            </div>
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                ready
+                  ? "bg-emerald-100 text-emerald-800"
+                  : failed
+                    ? "bg-red-100 text-red-800"
+                    : "bg-amber-100 text-amber-800"
+              }`}
+            >
+              {statusLabel}
+            </span>
+          </div>
+        </div>
+        <div className="space-y-3 px-4 py-4">
+          <p className="text-sm text-gray-700">
+            Perfiles: {report.processed_count} de {report.profile_count}
+            {report.failed_count > 0 ? ` · parciales o fallidos: ${report.failed_count}` : ""}
+          </p>
+          {!ready && !failed ? (
+            <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+              <div
+                className="h-full rounded-full bg-indigo-600 transition-all"
+                style={{ width: `${Math.max(2, report.progress_percent)}%` }}
+              />
+            </div>
+          ) : null}
+          {failed && report.error ? (
+            <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              {report.error}
+            </p>
+          ) : null}
+          {ready && report.view_path && report.download_path ? (
+            <div className="flex flex-wrap justify-end gap-2">
+              <a
+                href={report.view_path}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Ver PDF
+              </a>
+              <a
+                href={report.download_path}
+                download={report.filename}
+                className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+              >
+                Descargar PDF
+              </a>
+            </div>
+          ) : null}
+        </div>
+      </article>
+    </div>
+  );
 }
 
 function getMessageText(message: Message): string {
@@ -172,7 +334,7 @@ export default function ChatPage() {
             className="px-2 py-1 text-sm rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
             disabled={stream.isLoading}
           >
-            Nuevo
+            Nuevo Chat
           </button>
         </div>
         <ul className="px-2 pb-2 space-y-1 mt-2">
@@ -219,11 +381,21 @@ export default function ChatPage() {
           .filter(
             (m) =>
               parseDiagramDescriptor(m) !== null ||
+              parseReportDescriptor(m) !== null ||
               ((m.type === "human" || m.type === "ai") &&
                 hasVisibleMessageText(m))
           )
           .map((m, index) => {
             const diagram = parseDiagramDescriptor(m);
+            const report = parseReportDescriptor(m);
+            if (report) {
+              return (
+                <RadiosondeReportCard
+                  key={m.id ?? `report-${index}`}
+                  initial={report}
+                />
+              );
+            }
             if (diagram) {
               const profile = diagram.profile;
               const isSkewT = diagram.type === "skew_t_diagram";
