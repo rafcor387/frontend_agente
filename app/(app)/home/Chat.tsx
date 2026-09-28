@@ -58,6 +58,31 @@ function parseDiagramDescriptor(
   }
 }
 
+function getMessageText(message: Message): string {
+  const content: unknown = message.content;
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+
+  return content
+    .map((part) => {
+      if (typeof part === "string") return part;
+      if (!part || typeof part !== "object") return "";
+
+      const block = part as { type?: unknown; text?: unknown; content?: unknown };
+      if (block.type === "text" && typeof block.text === "string") {
+        return block.text;
+      }
+      if (typeof block.content === "string") return block.content;
+      return "";
+    })
+    .filter((text) => text.trim().length > 0)
+    .join("\n");
+}
+
+function hasVisibleMessageText(message: Message): boolean {
+  return getMessageText(message).trim().length > 0;
+}
+
 export default function ChatPage() {
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
@@ -123,7 +148,7 @@ export default function ChatPage() {
     // 2. Try first message from values
     if (thread.values?.messages && thread.values.messages.length > 0) {
       const firstMessage = thread.values.messages[0];
-      const content = String(firstMessage.content ?? "");
+      const content = getMessageText(firstMessage);
       return content.slice(0, 50) + (content.length > 50 ? "..." : "");
     }
 
@@ -193,9 +218,9 @@ export default function ChatPage() {
           {stream.messages
           .filter(
             (m) =>
-              m.type === "human" ||
-              m.type === "ai" ||
-              parseDiagramDescriptor(m) !== null
+              parseDiagramDescriptor(m) !== null ||
+              ((m.type === "human" || m.type === "ai") &&
+                hasVisibleMessageText(m))
           )
           .map((m, index) => {
             const diagram = parseDiagramDescriptor(m);
@@ -270,7 +295,7 @@ export default function ChatPage() {
                   }`}
                 >
                   <p className="whitespace-pre-wrap leading-relaxed">
-                    {String(m.content ?? "")}
+                    {getMessageText(m)}
                   </p>
                 </div>
               </div>
@@ -278,7 +303,7 @@ export default function ChatPage() {
           })}
           {stream.isLoading && (
             <div className="text-xs text-gray-500 italic">
-              El agente está respondiendo…
+              El agente está pensando…
             </div>
           )}
           {/*Invisible div at the bottom to scroll to */}
