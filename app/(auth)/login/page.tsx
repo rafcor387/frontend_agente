@@ -24,10 +24,8 @@ export default function LoginPage() {
       return;
     }
 
-    // Las cookies ya están puestas por el Route Handler.
-    startTransition(() => {
-      router.replace("/home"); // navega a la home protegida
-    });
+    // Forzamos la redirección real del navegador para que el middleware lea la nueva cookie
+    window.location.href = "/home";
   }
 
   return (

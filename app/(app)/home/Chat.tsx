@@ -13,6 +13,51 @@ type ThreadSummary = {
   values?: { messages?: Message[] }; 
 };
 
+type MeteorologicalDiagramDescriptor = {
+  type: "skew_t_diagram" | "hodograph_diagram";
+  profile?: {
+    profile_id?: number;
+    date?: string;
+    time?: string | null;
+    station?: string | null;
+  };
+  image_path: string;
+  download_path: string;
+  filename: string;
+  summary?: string;
+};
+
+function parseDiagramDescriptor(
+  message: Message
+): MeteorologicalDiagramDescriptor | null {
+  if (message.type !== "tool") return null;
+
+  try {
+    const raw = message.content;
+    const value = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+    const candidate = value as Partial<MeteorologicalDiagramDescriptor>;
+    const diagramPath =
+      candidate.type === "skew_t_diagram" ? "/skew-t/image" : "/hodograph/image";
+    if (
+      !["skew_t_diagram", "hodograph_diagram"].includes(candidate.type ?? "") ||
+      typeof candidate.image_path !== "string" ||
+      typeof candidate.download_path !== "string" ||
+      typeof candidate.filename !== "string" ||
+      !candidate.image_path.startsWith("/api/radiosondes/") ||
+      !candidate.download_path.startsWith("/api/radiosondes/") ||
+      !candidate.image_path.endsWith(diagramPath) ||
+      !candidate.download_path.startsWith(`${candidate.image_path}?`)
+    ) {
+      return null;
+    }
+    return candidate as MeteorologicalDiagramDescriptor;
+  } catch {
+    return null;
+  }
+}
+
 export default function ChatPage() {
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
@@ -146,27 +191,91 @@ export default function ChatPage() {
         {/* Historial */}
         <div className="flex-1 overflow-auto p-4 space-y-3 bg-gray-50/50">
           {stream.messages
-          .filter((m) => m.type === "human" || m.type === "ai")
-          .map((m) => (
-            <div
-              key={m.id}
-              className={`flex ${
-                m.type === "human" ? "justify-end" : "justify-start"
-              }`}
-            >
+          .filter(
+            (m) =>
+              m.type === "human" ||
+              m.type === "ai" ||
+              parseDiagramDescriptor(m) !== null
+          )
+          .map((m, index) => {
+            const diagram = parseDiagramDescriptor(m);
+            if (diagram) {
+              const profile = diagram.profile;
+              const isSkewT = diagram.type === "skew_t_diagram";
+              const diagramName = isSkewT ? "Diagrama Skew-T" : "Hodógrafo";
+              return (
+                <div key={m.id ?? `diagram-${index}`} className="flex justify-start">
+                  <article className="w-full max-w-3xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                    <div className="border-b border-gray-200 px-4 py-3">
+                      <h3 className="font-semibold text-gray-900">{diagramName}</h3>
+                      <p className="mt-1 text-sm text-gray-600">
+                        {profile?.station ?? "La Paz"}
+                        {profile?.date ? ` · ${profile.date}` : ""}
+                        {profile?.time ? ` · ${profile.time}` : ""}
+                      </p>
+                    </div>
+                    <a
+                      href={diagram.image_path}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block bg-gray-50 p-3"
+                      title="Abrir imagen en tamaño completo"
+                    >
+                      <img
+                        src={diagram.image_path}
+                        alt={`${diagramName} ${profile?.date ?? ""}`.trim()}
+                        className="mx-auto h-auto max-h-[720px] w-auto max-w-full rounded-lg bg-white"
+                        loading="lazy"
+                      />
+                    </a>
+                    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                      <p className="text-sm text-gray-600">
+                        {diagram.summary ?? diagram.filename}
+                      </p>
+                      <div className="flex gap-2">
+                        <a
+                          href={diagram.image_path}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        >
+                          Ampliar
+                        </a>
+                        <a
+                          href={diagram.download_path}
+                          download={diagram.filename}
+                          className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                        >
+                          Descargar PNG
+                        </a>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              );
+            }
+
+            return (
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
-                  m.type === "human"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-white text-gray-900 border border-gray-200"
+                key={m.id ?? `message-${index}`}
+                className={`flex ${
+                  m.type === "human" ? "justify-end" : "justify-start"
                 }`}
               >
-                <p className="whitespace-pre-wrap leading-relaxed">
-                  {String(m.content ?? "")}
-                </p>
+                <div
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
+                    m.type === "human"
+                      ? "bg-indigo-600 text-white"
+                      : "bg-white text-gray-900 border border-gray-200"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap leading-relaxed">
+                    {String(m.content ?? "")}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {stream.isLoading && (
             <div className="text-xs text-gray-500 italic">
               El agente está respondiendo…

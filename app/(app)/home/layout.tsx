@@ -1,35 +1,26 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import LogoutButton from "./LogoutButton";
-import { DJANGO_API } from "@/lib/config";
+import { getCurrentUser } from "@/lib/auth";
 
 export default async function HomeLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-  const access = cookieStore.get("access")?.value;
+  // Decodificamos el token directamente, sin llamar a Django
+  const user = await getCurrentUser();
 
-  // Fetch user data
-  const meRes = await fetch(`${DJANGO_API}/usuarios/api/auth/me/`, {
-    headers: { Authorization: `Bearer ${access}` },
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  if (!meRes.ok) {
+  // Si no hay token válido, mandamos al login
+  if (!user) {
     redirect("/login");
   }
-
-  const me = await meRes.json();
 
   return (
     <main className="p-6 space-y-4">
       <header className="flex items-center justify-between">
-        {/* ✅ Left side: Logo + Username */}
+        {/* Left side: Logo + Username */}
         <div className="flex items-center gap-3">
           <Link 
             href="/home"
@@ -43,7 +34,7 @@ export default async function HomeLayout({
               className="rounded-lg"
             />
           </Link>
-          <h1 className="text-2xl font-semibold">Hola, {me.username}</h1>
+          <h1 className="text-2xl font-semibold">Hola, {user.email}</h1>
         </div>
         
         {/* Right side: Navigation */}

@@ -1,5 +1,11 @@
 import { cookies } from "next/headers";
-import { DJANGO_API } from "@/lib/config";
+import { jwtDecode, JwtPayload } from "jwt-decode";
+
+// Le decimos a TypeScript qué datos extra le metimos en Django
+interface MiTokenPersonalizado extends JwtPayload {
+  email: string;
+  rol: string;
+}
 
 export async function getCurrentUser() {
   const cookieStore = await cookies();
@@ -7,12 +13,14 @@ export async function getCurrentUser() {
 
   if (!access) return null;
 
-  const res = await fetch(`${DJANGO_API}/usuarios/api/auth/me/`, {
-    headers: { Authorization: `Bearer ${access}` },
-    cache: "no-store",
-  });
-
-  if (!res.ok) return null;
-  
-  return res.json();
+  try {
+    const decodedToken = jwtDecode<MiTokenPersonalizado>(access);
+    
+    return {
+      email: decodedToken.email,
+      rol: decodedToken.rol,
+    };
+  } catch (error) {
+    return null;
+  }
 }
