@@ -1,18 +1,18 @@
 // app/(app)/home/LogoutButton.tsx
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState } from "react";
 
 export default function LogoutButton() {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
   async function onLogout() {
-    // Llama a tu handler
-    await fetch("/api/auth/logout", { method: "POST" });
-    // Redirige a /login
-    startTransition(() => router.replace("/login"));
+    setIsPending(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      window.location.replace("/login");
+    }
   }
 
   return (

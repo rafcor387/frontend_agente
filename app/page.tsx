@@ -1,7 +1,7 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 
 export default async function IndexPage() {
-  const access = (await cookies()).get("access")?.value;
-  redirect(access ? "/home" : "/login");
+  const user = await getCurrentUser();
+  redirect(user ? "/home" : "/login");
 }

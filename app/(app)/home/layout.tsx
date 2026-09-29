@@ -9,13 +9,21 @@ export default async function HomeLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Decodificamos el token directamente, sin llamar a Django
+  // Django valida el token y devuelve el usuario actual mediante /auth/me/.
   const user = await getCurrentUser();
 
   // Si no hay token válido, mandamos al login
   if (!user) {
     redirect("/login");
   }
+
+  const fullName = [
+    user.person.name,
+    user.person.paternal_surname,
+    user.person.maternal_surname,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <main className="p-6 space-y-4">
@@ -34,7 +42,12 @@ export default async function HomeLayout({
               className="rounded-lg"
             />
           </Link>
-          <h1 className="text-2xl font-semibold">Hola, {user.email}</h1>
+          <div>
+            <h1 className="text-2xl font-semibold">Hola, {fullName}</h1>
+            <p className="text-sm text-neutral-500">
+              {user.person.email} · {user.user_role.name}
+            </p>
+          </div>
         </div>
         
         {/* Right side: Navigation */}
