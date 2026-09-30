@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
+import type { FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { ChangePasswordModal } from "./ChangePasswordModal";
 
 interface Role { id: number; code: string; name: string }
@@ -22,10 +24,12 @@ interface ProfileModalProps {
 }
 
 export default function ProfileModal({ onClose }: ProfileModalProps) {
+  const router = useRouter();
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showChangePwd, setShowChangePwd] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -41,6 +45,20 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
   // Si el modal de cambiar contraseña está abierto, mostrarlo encima
   if (showChangePwd) {
     return <ChangePasswordModal onClose={() => setShowChangePwd(false)} />;
+  }
+
+  if (showEditProfile && user) {
+    return (
+      <EditProfileModal
+        user={user}
+        onClose={() => setShowEditProfile(false)}
+        onSaved={(updatedUser) => {
+          setUser(updatedUser);
+          setShowEditProfile(false);
+          router.refresh();
+        }}
+      />
+    );
   }
 
   const fullName = user
@@ -111,16 +129,170 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
 
             <hr className="border-white/10" />
 
-            {/* Acción */}
-            <button
-              onClick={() => setShowChangePwd(true)}
-              className="w-full py-2.5 rounded-lg border border-sky-500/50 hover:bg-sky-500/20 text-sky-300 font-medium transition-colors text-sm"
-            >
-              Cambiar contraseña
-            </button>
+            {/* Acciones */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setShowChangePwd(true)}
+                className="rounded-lg border border-sky-500/50 py-2.5 text-sm font-medium text-sky-300 transition-colors hover:bg-sky-500/20"
+              >
+                Cambiar contraseña
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowEditProfile(true)}
+                className="rounded-lg border border-white/20 py-2.5 text-sm font-medium text-neutral-200 transition-colors hover:bg-white/10"
+              >
+                Editar
+              </button>
+            </div>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function EditProfileModal({
+  user,
+  onClose,
+  onSaved,
+}: {
+  user: CurrentUser;
+  onClose: () => void;
+  onSaved: (user: CurrentUser) => void;
+}) {
+  const [name, setName] = useState(user.person.name);
+  const [paternalSurname, setPaternalSurname] = useState(user.person.paternal_surname);
+  const [maternalSurname, setMaternalSurname] = useState(user.person.maternal_surname);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/users/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          paternal_surname: paternalSurname.trim(),
+          maternal_surname: maternalSurname.trim(),
+        }),
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(
+          typeof data?.message === "string"
+            ? data.message
+            : "No se pudo actualizar el perfil.",
+        );
+      }
+
+      onSaved(data as CurrentUser);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo actualizar el perfil.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+
+      <form
+        onSubmit={handleSubmit}
+        className="relative w-full max-w-md space-y-5 rounded-2xl border border-white/10 bg-neutral-900 p-8 shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-profile-title"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 id="edit-profile-title" className="text-xl font-bold text-white">
+              Editar perfil
+            </h2>
+            <p className="mt-1 text-sm text-neutral-400">Actualiza tus datos personales.</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="text-2xl leading-none text-white/40 transition hover:text-white disabled:opacity-50"
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+        </div>
+
+        {error && (
+          <div className="rounded-lg border border-red-400/40 bg-red-500/20 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
+        )}
+
+        <label className="block space-y-1.5 text-sm text-neutral-300">
+          <span className="font-medium">Nombre</span>
+          <input
+            type="text"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            maxLength={100}
+            required
+            disabled={saving}
+            className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-white outline-none focus:border-sky-400/60 disabled:opacity-60"
+          />
+        </label>
+
+        <label className="block space-y-1.5 text-sm text-neutral-300">
+          <span className="font-medium">Apellido paterno</span>
+          <input
+            type="text"
+            value={paternalSurname}
+            onChange={(event) => setPaternalSurname(event.target.value)}
+            maxLength={100}
+            required
+            disabled={saving}
+            className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-white outline-none focus:border-sky-400/60 disabled:opacity-60"
+          />
+        </label>
+
+        <label className="block space-y-1.5 text-sm text-neutral-300">
+          <span className="font-medium">Apellido materno</span>
+          <input
+            type="text"
+            value={maternalSurname}
+            onChange={(event) => setMaternalSurname(event.target.value)}
+            maxLength={100}
+            required
+            disabled={saving}
+            className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-white outline-none focus:border-sky-400/60 disabled:opacity-60"
+          />
+        </label>
+
+        <div className="flex justify-end gap-2 pt-1">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-lg border border-white/10 px-4 py-2 text-sm text-neutral-300 transition-colors hover:bg-white/10 disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="rounded-lg border border-sky-500/30 bg-sky-500/15 px-4 py-2 text-sm font-medium text-sky-200 transition-colors hover:bg-sky-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? "Guardando…" : "Guardar cambios"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
