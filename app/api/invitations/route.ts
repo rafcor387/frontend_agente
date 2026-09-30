@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { DJANGO_API } from "@/lib/config";
 
-export async function GET() {
+export async function GET(req: Request) {
   const jar = await cookies();
   const access = jar.get("access")?.value;
 
@@ -14,7 +14,15 @@ export async function GET() {
   }
 
   try {
-    const res = await fetch(new URL("/invitations/", DJANGO_API), {
+    const requestUrl = new URL(req.url);
+    const backendUrl = new URL("/invitations/", DJANGO_API);
+
+    for (const param of ["page", "email", "status"]) {
+      const value = requestUrl.searchParams.get(param);
+      if (value) backendUrl.searchParams.set(param, value);
+    }
+
+    const res = await fetch(backendUrl, {
       method: "GET",
       headers: { Authorization: `Bearer ${access}` },
       cache: "no-store",
