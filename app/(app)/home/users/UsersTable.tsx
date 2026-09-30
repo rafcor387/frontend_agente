@@ -29,6 +29,7 @@ interface Filters {
   username: string;
   personRole: PersonRoleCode | "";
   userRole: UserRoleCode | "";
+  isActive: "true" | "false" | "";
 }
 
 interface ActionState {
@@ -57,11 +58,13 @@ export default function UsersTable({ currentUserId }: { currentUserId: number | 
   const [username, setUsername] = useState("");
   const [personRole, setPersonRole] = useState<PersonRoleCode | "">("");
   const [userRole, setUserRole] = useState<UserRoleCode | "">("");
+  const [isActive, setIsActive] = useState<"true" | "false" | "">("");
   const [filters, setFilters] = useState<Filters>({
     name: "",
     username: "",
     personRole: "",
     userRole: "",
+    isActive: "",
   });
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -78,6 +81,7 @@ export default function UsersTable({ currentUserId }: { currentUserId: number | 
     if (filters.username) params.set("username", filters.username);
     if (filters.personRole) params.set("person_role", filters.personRole);
     if (filters.userRole) params.set("user_role", filters.userRole);
+    if (filters.isActive) params.set("is_active", filters.isActive);
 
     const response = await fetch(`/api/users?${params.toString()}`);
     if (!response.ok) {
@@ -128,6 +132,7 @@ export default function UsersTable({ currentUserId }: { currentUserId: number | 
       username: username.trim(),
       personRole,
       userRole,
+      isActive,
     });
     setReloadTrigger((current) => current + 1);
   };
@@ -137,8 +142,9 @@ export default function UsersTable({ currentUserId }: { currentUserId: number | 
     setUsername("");
     setPersonRole("");
     setUserRole("");
+    setIsActive("");
     setPage(1);
-    setFilters({ name: "", username: "", personRole: "", userRole: "" });
+    setFilters({ name: "", username: "", personRole: "", userRole: "", isActive: "" });
     setReloadTrigger((current) => current + 1);
   };
 
@@ -221,15 +227,15 @@ export default function UsersTable({ currentUserId }: { currentUserId: number | 
       <div className="space-y-4">
         <form
           onSubmit={handleFilter}
-          className="grid gap-3 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:grid-cols-2 xl:grid-cols-4"
+          className="grid gap-3 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:grid-cols-2 xl:grid-cols-5"
         >
           <label className="space-y-1.5 text-sm text-neutral-300">
-            <span className="block font-medium">Nombre</span>
+            <span className="block font-medium">Nombre completo</span>
             <input
               type="search"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Buscar por nombre"
+              placeholder="Nombre y apellidos"
               className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-white outline-none placeholder:text-neutral-500 focus:border-sky-400/60"
             />
           </label>
@@ -277,7 +283,20 @@ export default function UsersTable({ currentUserId }: { currentUserId: number | 
             </select>
           </label>
 
-          <div className="flex gap-2 md:col-span-2 xl:col-span-4">
+          <label className="space-y-1.5 text-sm text-neutral-300">
+            <span className="block font-medium">Estado</span>
+            <select
+              value={isActive}
+              onChange={(event) => setIsActive(event.target.value as "true" | "false" | "")}
+              className="w-full rounded-lg border border-white/10 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-sky-400/60"
+            >
+              <option value="">Todos</option>
+              <option value="true">Activo</option>
+              <option value="false">Suspendido</option>
+            </select>
+          </label>
+
+          <div className="flex gap-2 md:col-span-2 xl:col-span-5">
             <button
               type="submit"
               className="rounded-lg border border-sky-500/30 bg-sky-500/15 px-4 py-2 text-sm font-medium text-sky-200 transition-colors hover:bg-sky-500/25"

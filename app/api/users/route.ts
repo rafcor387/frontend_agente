@@ -17,7 +17,14 @@ export async function GET(req: Request) {
     const requestUrl = new URL(req.url);
     const backendUrl = new URL("/users/", DJANGO_API);
 
-    for (const param of ["page", "name", "person_role", "user_role", "username"]) {
+    for (const param of [
+      "page",
+      "name",
+      "person_role",
+      "user_role",
+      "username",
+      "is_active",
+    ]) {
       const value = requestUrl.searchParams.get(param);
       if (value) backendUrl.searchParams.set(param, value);
     }

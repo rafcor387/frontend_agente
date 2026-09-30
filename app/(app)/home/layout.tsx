@@ -55,6 +55,7 @@ export default async function HomeLayout({
           fullName={fullName}
           email={user.person.email}
           roleName={user.user_role.name}
+          isAdministrator={user.user_role.code === "ADMINISTRATOR"}
         />
       </header>
 

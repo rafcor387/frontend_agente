@@ -8,27 +8,32 @@ interface HeaderNavProps {
   fullName: string;
   email: string;
   roleName: string;
+  isAdministrator: boolean;
 }
 
-export default function HeaderNav({ fullName, email, roleName }: HeaderNavProps) {
+export default function HeaderNav({ isAdministrator }: HeaderNavProps) {
   const [showProfile, setShowProfile] = useState(false);
 
   return (
     <>
       {/* Right side: Navigation */}
       <div className="flex items-center gap-3">
-        <Link
-          href="/home/users"
-          className="px-4 py-2 rounded-lg border border-sky-500/50 hover:bg-sky-500/20 text-sky-300 font-medium transition-colors"
-        >
-          Usuarios
-        </Link>
-        <Link
-          href="/home/invitations"
-          className="px-4 py-2 rounded-lg border border-sky-500/50 hover:bg-sky-500/20 text-sky-300 font-medium transition-colors"
-        >
-          Invitaciones
-        </Link>
+        {isAdministrator && (
+          <>
+            <Link
+              href="/home/users"
+              className="px-4 py-2 rounded-lg border border-sky-500/50 hover:bg-sky-500/20 text-sky-300 font-medium transition-colors"
+            >
+              Usuarios
+            </Link>
+            <Link
+              href="/home/invitations"
+              className="px-4 py-2 rounded-lg border border-sky-500/50 hover:bg-sky-500/20 text-sky-300 font-medium transition-colors"
+            >
+              Invitaciones
+            </Link>
+          </>
+        )}
         <button
           onClick={() => setShowProfile(true)}
           className="px-4 py-2 rounded-lg border border-sky-500/50 hover:bg-sky-500/20 text-sky-300 font-medium transition-colors"
