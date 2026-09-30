@@ -1,7 +1,33 @@
-// app/api/invitations/route.ts
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { DJANGO_API } from "@/lib/config";
+
+export async function GET() {
+  const jar = await cookies();
+  const access = jar.get("access")?.value;
+
+  if (!access) {
+    return NextResponse.json(
+      { code: "AUTH_REQUIRED", message: "Debe iniciar sesión.", errors: {} },
+      { status: 401 },
+    );
+  }
+
+  try {
+    const res = await fetch(new URL("/invitations/", DJANGO_API), {
+      method: "GET",
+      headers: { Authorization: `Bearer ${access}` },
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => null);
+    return NextResponse.json(data ?? [], { status: res.status });
+  } catch {
+    return NextResponse.json(
+      { code: "BACKEND_UNAVAILABLE", message: "No fue posible conectar con el servidor.", errors: {} },
+      { status: 503 },
+    );
+  }
+}
 
 export async function POST(req: Request) {
   const jar = await cookies();

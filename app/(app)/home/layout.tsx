@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import LogoutButton from "./LogoutButton";
 import { getCurrentUser } from "@/lib/auth";
+import HeaderNav from "./HeaderNav";
 
 export default async function HomeLayout({
   children,
@@ -30,7 +30,7 @@ export default async function HomeLayout({
       <header className="flex items-center justify-between">
         {/* Left side: Logo + Username */}
         <div className="flex items-center gap-3">
-          <Link 
+          <Link
             href="/home"
             className="hover:opacity-80 transition-opacity"
           >
@@ -49,23 +49,13 @@ export default async function HomeLayout({
             </p>
           </div>
         </div>
-        
-        {/* Right side: Navigation */}
-        <div className="flex items-center gap-3">
-          <Link
-            href="/home/users"
-            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors"
-          >
-            Usuarios
-          </Link>
-          <Link
-            href="/home/change-password"
-            className="px-4 py-2 rounded-lg border border-sky-500/50 hover:bg-sky-500/20 text-sky-300 font-medium transition-colors"
-          >
-            Cambiar contraseña
-          </Link>
-          <LogoutButton />
-        </div>
+
+        {/* Right side: Client Component con modales */}
+        <HeaderNav
+          fullName={fullName}
+          email={user.person.email}
+          roleName={user.user_role.name}
+        />
       </header>
 
       {children}

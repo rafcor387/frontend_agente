@@ -9,7 +9,7 @@ const ROLES: { code: string; label: string }[] = [
   { code: "ASSISTANT", label: "Auxiliar"   },
 ];
 
-export default function EmailForm() {
+export default function EmailForm({ onSuccess }: { onSuccess?: () => void }) {
   const [email, setEmail] = useState("");
   const [roleCode, setRoleCode] = useState("STUDENT");
   const [loading, setLoading] = useState(false);
@@ -51,6 +51,7 @@ export default function EmailForm() {
           }.`,
         });
         setEmail("");
+        onSuccess?.();
         return;
       }
 
