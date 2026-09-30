@@ -1,38 +1,38 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { DJANGO_API } from "@/lib/config";
 
-const DJANGO_API = process.env.DJANGO_API;
-
-export async function GET() {
-  const cookieStore = await cookies();
-  const access = cookieStore.get("access")?.value;
+export async function GET(req: Request) {
+  const jar = await cookies();
+  const access = jar.get("access")?.value;
 
   if (!access) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { code: "AUTH_REQUIRED", message: "Debe iniciar sesión.", errors: {} },
+      { status: 401 },
+    );
   }
 
   try {
-    // ✅ Call your Django users endpoint
-    const res = await fetch(`${DJANGO_API}/usuarios/users/`, {
-      headers: {
-        Authorization: `Bearer ${access}`,
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-    });
+    const requestUrl = new URL(req.url);
+    const backendUrl = new URL("/users/", DJANGO_API);
 
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      return NextResponse.json(error, { status: res.status });
+    for (const param of ["page", "name", "person_role", "user_role", "username"]) {
+      const value = requestUrl.searchParams.get(param);
+      if (value) backendUrl.searchParams.set(param, value);
     }
 
-    const users = await res.json();
-    return NextResponse.json(users);
-  } catch (error) {
-    console.error("Error fetching users:", error);
+    const response = await fetch(backendUrl, {
+      headers: { Authorization: `Bearer ${access}` },
+      cache: "no-store",
+    });
+    const data = await response.json().catch(() => null);
+
+    return NextResponse.json(data ?? { count: 0, items: [] }, { status: response.status });
+  } catch {
     return NextResponse.json(
-      { error: "Failed to fetch users" },
-      { status: 500 }
+      { code: "BACKEND_UNAVAILABLE", message: "No fue posible conectar con el servidor.", errors: {} },
+      { status: 503 },
     );
   }
 }
