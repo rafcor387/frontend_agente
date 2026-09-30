@@ -58,6 +58,12 @@ export default async function HomeLayout({
           >
             Usuarios
           </Link>
+          <Link
+            href="/home/change-password"
+            className="px-4 py-2 rounded-lg border border-sky-500/50 hover:bg-sky-500/20 text-sky-300 font-medium transition-colors"
+          >
+            Cambiar contraseña
+          </Link>
           <LogoutButton />
         </div>
       </header>
