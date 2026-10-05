@@ -82,7 +82,6 @@ export default function EmailForm({ onSuccess }: { onSuccess?: () => void }) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="correo@ejemplo.com"
             className="flex-1 px-4 py-2.5 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-sky-400 transition"
             disabled={loading}
             required

@@ -26,7 +26,7 @@ export default async function HomeLayout({
     .join(" ");
 
   return (
-    <main className="p-6 space-y-4">
+    <main className="app-shell min-h-screen space-y-4 p-6">
       <header className="flex items-center justify-between">
         {/* Left side: Logo + Username */}
         <div className="flex items-center gap-3">

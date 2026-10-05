@@ -3,6 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -16,6 +17,7 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    color-scheme: dark;
   }
 }
 
@@ -23,4 +25,163 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+@media (prefers-color-scheme: light) {
+  /* The authenticated area was originally designed in dark mode. These
+     scoped rules provide light equivalents without altering its dark theme. */
+  .app-shell .bg-white\/5 {
+    background-color: rgb(255 255 255 / 0.92);
+  }
+
+  .app-shell .bg-white\/10,
+  .app-shell .bg-black\/20 {
+    background-color: rgb(248 250 252 / 0.96);
+  }
+
+  .app-shell .bg-neutral-900,
+  .app-shell .bg-neutral-950 {
+    background-color: #ffffff;
+  }
+
+  .app-shell .border-white\/10,
+  .app-shell .border-white\/15 {
+    border-color: #e2e8f0;
+  }
+
+  .app-shell .border-white\/20,
+  .app-shell .border-neutral-700 {
+    border-color: #cbd5e1;
+  }
+
+  .app-shell .divide-white\/5 > :not(:last-child) {
+    border-color: #e2e8f0;
+  }
+
+  .app-shell .text-white,
+  .app-shell .text-neutral-100 {
+    color: #0f172a;
+  }
+
+  .app-shell .text-neutral-200,
+  .app-shell .text-neutral-300 {
+    color: #334155;
+  }
+
+  .app-shell .text-neutral-400,
+  .app-shell .text-neutral-500 {
+    color: #64748b;
+  }
+
+  .app-shell .text-neutral-600 {
+    color: #94a3b8;
+  }
+
+  .app-shell .text-white\/40,
+  .app-shell .text-white\/50 {
+    color: #64748b;
+  }
+
+  .app-shell .placeholder-white\/40::placeholder,
+  .app-shell .placeholder-neutral-500::placeholder {
+    color: #94a3b8;
+  }
+
+  .app-shell .hover\:bg-white\/5:hover,
+  .app-shell .hover\:bg-white\/10:hover,
+  .app-shell .hover\:bg-neutral-800:hover {
+    background-color: #f1f5f9;
+  }
+
+  .app-shell .hover\:text-white:hover {
+    color: #0f172a;
+  }
+
+  .app-shell .text-yellow-300 {
+    color: #a16207;
+  }
+
+  .app-shell .text-emerald-300 {
+    color: #047857;
+  }
+
+  .app-shell .text-red-300,
+  .app-shell .text-red-400 {
+    color: #b91c1c;
+  }
+
+  .app-shell .text-sky-200,
+  .app-shell .text-sky-300 {
+    color: #0369a1;
+  }
+
+  .app-shell :is(.bg-sky-600, .bg-indigo-600, .bg-amber-500).text-white {
+    color: #ffffff;
+  }
+
+  .app-shell :is(input, select, textarea) {
+    color-scheme: light;
+  }
+
+  /* Authentication screens retain their photographic background, but the
+     overlay, cards and fields become readable light surfaces. */
+  .auth-shell .bg-black\/50,
+  .auth-shell .bg-black\/55 {
+    background-color: rgb(255 255 255 / 0.58);
+  }
+
+  .auth-shell .bg-white\/10 {
+    background-color: rgb(255 255 255 / 0.88);
+  }
+
+  .auth-shell .border-white\/10,
+  .auth-shell .border-white\/15,
+  .auth-shell .border-white\/20 {
+    border-color: rgb(15 23 42 / 0.16);
+  }
+
+  .auth-shell .text-white {
+    color: #0f172a;
+  }
+
+  .auth-shell .text-white\/40,
+  .auth-shell .text-white\/50,
+  .auth-shell .text-white\/60,
+  .auth-shell .text-neutral-400 {
+    color: #64748b;
+  }
+
+  .auth-shell .text-sky-200,
+  .auth-shell .text-sky-200\/80,
+  .auth-shell .text-sky-300,
+  .auth-shell .text-sky-300\/80,
+  .auth-shell .text-sky-400 {
+    color: #0369a1;
+  }
+
+  .auth-shell .text-red-300,
+  .auth-shell .text-red-400 {
+    color: #b91c1c;
+  }
+
+  .auth-shell .text-emerald-300 {
+    color: #047857;
+  }
+
+  .auth-shell .placeholder-white\/40::placeholder {
+    color: #94a3b8;
+  }
+
+  .auth-shell .hover\:text-white:hover {
+    color: #0f172a;
+  }
+
+  .auth-shell :is(.bg-sky-600, .bg-sky-500).text-white {
+    color: #ffffff;
+  }
+
+  .auth-shell :is(input, select, textarea) {
+    color-scheme: light;
+  }
 }

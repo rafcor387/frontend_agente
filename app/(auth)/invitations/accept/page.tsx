@@ -58,7 +58,7 @@ function InvitationAcceptContent() {
   }, [token]);
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center">
+    <div className="auth-shell relative min-h-screen flex items-center justify-center">
       <Image
         src="/earth-bg.jpg"
         alt="Fondo atmosférico"

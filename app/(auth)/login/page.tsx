@@ -8,7 +8,7 @@ export default function LoginPage() {
   const [view, setView] = useState<View>("login");
 
   return (
-    <div className="relative min-h-screen flex">
+    <div className="auth-shell relative min-h-screen flex">
       {/* ── Fondo: imagen de la Tierra ── */}
       <Image
         src="/earth-bg.jpg"
@@ -120,7 +120,6 @@ function LoginForm({ onForgot }: { onForgot: () => void }) {
           </label>
           <input
             className="w-full rounded-lg bg-white/10 border border-white/20 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-sky-400 transition"
-            placeholder="tu_usuario"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
@@ -251,7 +250,6 @@ function ForgotForm({ onBack }: { onBack: () => void }) {
             <input
               type="email"
               className="w-full rounded-lg bg-white/10 border border-white/20 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-sky-400 transition"
-              placeholder="correo@ejemplo.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
